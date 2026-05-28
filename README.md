@@ -1,6 +1,6 @@
 # Example: Bi-Directional Contract Testing with AsyncAPI
 
-> **Early access** — PactFlow's AsyncAPI support for bi-directional contract
+> **Early access demo** — PactFlow's AsyncAPI support for bi-directional contract
 > testing is not yet publicly available. This demo shows how it works.
 
 ## What is this?
@@ -10,8 +10,7 @@ message-based service** and verify the provider contract using **PactFlow's
 AsyncAPI bi-directional contract testing (BDCT)** feature.
 
 Instead of running the provider application, BDCT compares the generated Pact
-file against the provider's **AsyncAPI document** — making verification fast,
-stateless, and infrastructure-free.
+file against the provider's **AsyncAPI document**.
 
 ### Two messaging patterns are demonstrated
 
@@ -44,8 +43,6 @@ stateless, and infrastructure-free.
 
 > **Pre-release dependency** — AsyncAPI support in `@pactflow/openapi-pact-comparator`
 > is not yet published to npm. `package.json` references the GitHub main branch.
-> Allow npm to install from GitHub when prompted (or add a Bash permission rule in
-> Claude Code settings for `npm install`).
 
 ```bash
 # Install dependencies (includes the pre-release comparator from GitHub)
@@ -112,16 +109,6 @@ This calls `@pactflow/openapi-pact-comparator` programmatically against:
 
 ---
 
-## Key packages
-
-| Package | Role |
-|---|---|
-| `@pact-foundation/pact` | Consumer test DSL + Pact file generation |
-| `@pactflow/openapi-pact-comparator` | Validates Pact vs AsyncAPI spec |
-| `vitest` | Test runner (Vite-powered) |
-
----
-
 ## AsyncAPI document overview
 
 The `provider/asyncapi.yaml` defines:
@@ -137,16 +124,3 @@ The `provider/asyncapi.yaml` defines:
 receiveUserEvents   action: receive   → fire-and-forget events
 getUser             action: send      → request/reply lookup
 ```
-
----
-
-## Notes
-
-- The `reference()` method requires `@pact-foundation/pact` ≥ 13.x (includes
-  the `addInteractionReference` FFI call introduced in
-  [pact-js#1762](https://github.com/pact-foundation/pact-js/pull/1762)).
-- AsyncAPI BDCT support in `@pactflow/openapi-pact-comparator` was introduced
-  in [#617](https://github.com/pactflow/openapi-pact-comparator/pull/617).
-- In a CI pipeline you would publish the Pact file to PactFlow after
-  `test:consumer` and let PactFlow run the cross-contract verification;
-  `verify:provider` is a local convenience for development.

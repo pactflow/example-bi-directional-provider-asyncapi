@@ -58,6 +58,7 @@ describe('User Service Consumer', () => {
         .addAsynchronousInteraction()
         // Link this interaction to the AsyncAPI operation and message.
         // The comparator uses these references to locate the correct schema.
+        // If the body matches _any_ of the messages on the operation, it is considered a match
         .reference('AsyncAPI', 'operationId', 'receiveUserEvents')
         .expectsToReceive('a user-created event', (builder) => {
           builder.withJSONContent({
