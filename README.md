@@ -111,6 +111,40 @@ This calls `@pactflow/openapi-pact-comparator` programmatically against:
 
 ## AsyncAPI document overview
 
+```mermaid
+flowchart LR
+  consumer["UserServiceConsumer"]
+  provider["UserService"]
+
+  subgraph broker["Message broker / logical channels"]
+    direction TB
+    events(["user-events"])
+    requests(["user-get-requests"])
+    responses(["user-get-responses"])
+  end
+
+  provider -- "publish lifecycle events" --> events
+  events -- "deliver events" --> consumer
+
+  consumer -- "send getUserRequest<br/>payload: userId" --> requests
+  requests -- "route request" --> provider
+
+  provider -- "send getUserResponse<br/>payload: userId, name, email" --> responses
+  responses -- "deliver reply" --> consumer
+
+  classDef app fill:#e0f2fe,stroke:#0284c7,stroke-width:2px,color:#0f172a;
+  classDef service fill:#eef2ff,stroke:#6366f1,stroke-width:2px,color:#0f172a;
+  classDef eventStream fill:#fef3c7,stroke:#f59e0b,stroke-width:2px,color:#0f172a;
+  classDef request fill:#e0f2fe,stroke:#06b6d4,stroke-width:2px,color:#0f172a;
+  classDef response fill:#d1fae5,stroke:#10b981,stroke-width:2px,color:#0f172a;
+
+  class consumer app;
+  class provider service;
+  class events eventStream;
+  class requests request;
+  class responses response;
+```
+
 The `provider/asyncapi.yaml` defines:
 
 - **`userEvents` channel** (`user-events`) — carries `userCreated` and
