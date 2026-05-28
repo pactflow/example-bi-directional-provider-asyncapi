@@ -1,0 +1,108 @@
+asyncapi: 3.1.0
+info:
+  title: User Service
+  version: "1.0.0"
+  description: |
+    Publishes user lifecycle events and supports synchronous user lookups
+    via a request/reply pattern.
+
+# ---------------------------------------------------------------------------
+# Channels — the logical topics / queues the service uses
+# ---------------------------------------------------------------------------
+channels:
+  userEvents:
+    address: user-events
+    description: Channel for user lifecycle events published by the service.
+    messages:
+      userCreated:
+        summary: Emitted when a new user account is created.
+        payload:
+          type: object
+          properties:
+            userId:
+              type: string
+              description: Unique identifier for the user.
+            email:
+              type: string
+              format: email
+              description: Email address of the new user.
+            name:
+              type: string
+              description: Display name of the user (optional at creation).
+          required:
+            - userId
+            - email
+
+      userDeleted:
+        summary: Emitted when a user account is permanently deleted.
+        payload:
+          type: object
+          properties:
+            userId:
+              type: string
+              description: Unique identifier of the deleted user.
+          required:
+            - userId
+
+  getUserRequests:
+    address: user-get-requests
+    description: Inbound channel for synchronous user lookup requests.
+    messages:
+      getUserRequest:
+        summary: Request to retrieve a user's details by ID.
+        payload:
+          type: object
+          properties:
+            userId:
+              type: string
+              description: ID of the user to look up.
+          required:
+            - userId
+
+  getUserResponses:
+    address: user-get-responses
+    description: Outbound channel for user lookup replies.
+    messages:
+      getUserResponse:
+        summary: Response containing the requested user's details.
+        payload:
+          type: object
+          properties:
+            userId:
+              type: string
+            name:
+              type: string
+            email:
+              type: string
+              format: email
+          required:
+            - userId
+            - name
+            - email
+
+# ---------------------------------------------------------------------------
+# Operations — how the service acts on each channel
+# ---------------------------------------------------------------------------
+operations:
+  # Fire-and-forget: the service publishes events; consumers receive them.
+  receiveUserEvents:
+    action: receive
+    channel:
+      $ref: "#/channels/userEvents"
+    messages:
+      - $ref: "#/channels/userEvents/messages/userCreated"
+      - $ref: "#/channels/userEvents/messages/userDeleted"
+
+  # Request/Reply: the consumer sends a request; the service replies.
+  # AsyncAPI 3.x models this as a "send" operation with a "reply" block.
+  getUser:
+    action: send
+    channel:
+      $ref: "#/channels/getUserRequests"
+    messages:
+      - $ref: "#/channels/getUserRequests/messages/getUserRequest"
+    reply:
+      channel:
+        $ref: "#/channels/getUserResponses"
+      messages:
+        - $ref: "#/channels/getUserResponses/messages/getUserResponse"
