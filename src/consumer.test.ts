@@ -39,8 +39,8 @@ describe('User Service Consumer', () => {
   // Pact (aliased from PactV4) — no mock HTTP server; messages are exchanged
   // in-process through the Pact Rust core FFI.
   const pact = new Pact({
-    consumer: 'UserServiceConsumer',
-    provider: 'UserService',
+    consumer: 'pactflow-example-bi-directional-provider-asyncapi-consumer',
+    provider: 'pactflow-example-bi-directional-provider-asyncapi',
     dir: path.resolve(process.cwd(), 'pacts'),
     logLevel: 'warn',
   });
