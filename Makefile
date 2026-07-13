@@ -31,21 +31,22 @@ fake_ci:
 
 publish_pact:
 	@echo "\n========== STAGE: publish consumer pact ==========\n"
-	${PACT_CLI} pact-broker publish ./pacts \
+	pact broker publish ./pacts \
 	  --consumer-app-version ${GIT_COMMIT} \
 	  --branch ${GIT_BRANCH}
 
 publish_provider_contract:
 	@echo "\n========== STAGE: publish provider contract (AsyncAPI) ==========\n"
-	${PACT_CLI} pactflow publish-provider-contract ${OAS_PATH} \
+	pact pactflow publish-provider-contract ${OAS_PATH} \
 	  --provider ${PACTICIPANT} \
 	  --provider-app-version ${GIT_COMMIT} \
 	  --branch ${GIT_BRANCH} \
-	  --content-type application/yaml
+	  --content-type application/yaml \
+		--specification asyncapi
 
 can_i_deploy:
 	@echo "\n========== STAGE: can-i-deploy? ==========\n"
-	${PACT_CLI} pact-broker can-i-deploy \
+	pact broker can-i-deploy \
 	  --pacticipant ${PACTICIPANT} \
 	  --version ${GIT_COMMIT} \
 	  --to-environment production \
@@ -61,7 +62,7 @@ deploy_app:
 	@echo "Deploying to production"
 
 record_deployment:
-	${PACT_CLI} pact-broker record-deployment \
+	pact broker record-deployment \
 	  --pacticipant ${PACTICIPANT} \
 	  --version ${GIT_COMMIT} \
 	  --environment production
