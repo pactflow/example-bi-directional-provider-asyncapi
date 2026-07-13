@@ -1,16 +1,22 @@
 # Example: Bi-Directional Contract Testing with AsyncAPI
 
-> **Early access demo** — PactFlow's AsyncAPI support for bi-directional contract
-> testing is not yet publicly available. This demo shows how it works.
-
 ## What is this?
 
 This repository demonstrates how to write **Pact consumer tests for a
 message-based service** and verify the provider contract using **PactFlow's
 AsyncAPI bi-directional contract testing (BDCT)** feature.
 
-Instead of running the provider application, BDCT compares the generated Pact
-file against the provider's **AsyncAPI document**.
+The consumer pact and the provider's **AsyncAPI document** are both
+published to PactFlow. PactFlow compares them server-side — no provider
+code needs to run, and no local comparison tooling is required.
+
+This repo currently holds both the consumer and provider side of the
+example in one place. It will eventually be split into standalone
+consumer/provider repos, closer in shape to
+[`example-bi-directional-provider-postman`](https://github.com/pactflow/example-bi-directional-provider-postman)
+and
+[`example-bi-directional-provider-drift`](https://github.com/pactflow/example-bi-directional-provider-drift)
+(the latter once Drift is used to verify the AsyncAPI provider directly).
 
 ### Two messaging patterns are demonstrated
 
@@ -30,9 +36,9 @@ file against the provider's **AsyncAPI document**.
 │   └── consumer.test.ts     # Pact V4 consumer tests
 ├── provider/
 │   └── asyncapi.yaml        # AsyncAPI 3.1.0 document (provider contract)
-├── scripts/
-│   └── verify-provider.mjs  # Runs the comparator against pacts + AsyncAPI doc
 ├── pacts/                   # Generated Pact files (git-ignored)
+├── Makefile                 # install / test / publish / can-i-deploy / deploy
+├── .github/workflows/       # CI: test → publish → can-i-deploy → deploy
 ├── package.json
 └── vitest.config.ts
 ```
@@ -41,22 +47,40 @@ file against the provider's **AsyncAPI document**.
 
 ## Quick start
 
-> **Pre-release dependency** — AsyncAPI support in `@pactflow/openapi-pact-comparator`
-> is not yet published to npm. `package.json` references the GitHub main branch.
-
 ```bash
-# Install dependencies (includes the pre-release comparator from GitHub)
+# Install dependencies
 npm install
 
-# Step 1 — run consumer tests → generates ./pacts/UserServiceConsumer-UserService.json
+# Step 1 — run consumer tests → generates ./pacts/*.json
 npm run test:consumer
 
-# Step 2 — verify the Pact file against the AsyncAPI document
-npm run verify:provider
+# Step 2 — publish the consumer pact and the provider's AsyncAPI contract
+# to PactFlow, then check can-i-deploy
+export PACT_BROKER_BASE_URL=https://your-instance.pactflow.io
+export PACT_BROKER_TOKEN=your-token
+make ci
 
-# OR, run both sequentially with...
-# npm t
+# OR run individual stages
+make test                       # run consumer tests
+make publish_pact                # publish the consumer pact
+make publish_provider_contract   # publish the provider's AsyncAPI doc
+make can_i_deploy                # gate a deployment
 ```
+
+---
+
+## CI setup
+
+The GitHub Actions workflow (`.github/workflows/build.yml`) needs two
+settings configured in this repository (Settings → Secrets and variables →
+Actions):
+
+- **Variable** `PACT_BROKER_BASE_URL` — the PactFlow instance URL (e.g.
+  `https://your-instance.pactflow.io`)
+- **Secret** `PACT_BROKER_TOKEN` — an API token for that instance
+
+Without these, the `test`, `can-i-deploy`, and `deploy` jobs will run
+against an empty broker URL and fail.
 
 ---
 
@@ -79,7 +103,7 @@ pact
 ```
 
 Running the tests writes a Pact file to `./pacts/` with a `comments.references`
-block that the comparator uses to look up the correct AsyncAPI operation:
+block that PactFlow uses to look up the correct AsyncAPI operation:
 
 ```json
 {
@@ -95,17 +119,26 @@ block that the comparator uses to look up the correct AsyncAPI operation:
 
 ### Provider side
 
-The provider only needs to publish its **AsyncAPI document**
-(`provider/asyncapi.yaml`).  No code runs.  The comparator checks that every
-interaction in the Pact file is compatible with the schema defined in the spec.
+The provider publishes its **AsyncAPI document**
+(`provider/asyncapi.yaml`) to PactFlow as its provider contract. No
+provider code runs. PactFlow checks that every interaction in the
+published consumer pact is compatible with the schema defined in the
+spec, then reports the result via `can-i-deploy`.
 
 ```bash
-npm run verify:provider
+make publish_provider_contract
+make can_i_deploy
 ```
 
-This calls `@pactflow/openapi-pact-comparator` programmatically against:
-- `provider/asyncapi.yaml` — the provider's AsyncAPI spec
-- `pacts/UserServiceConsumer-UserService.json` — the generated consumer contract
+This runs, via `npx @pact-foundation/pact-cli`:
+
+- `pactflow publish-provider-contract provider/asyncapi.yaml --provider
+  pactflow-example-bi-directional-provider-asyncapi ...` — uploads the
+  spec and lets PactFlow perform the BDCT comparison against previously
+  published consumer pacts.
+- `pact-broker can-i-deploy --pacticipant
+  pactflow-example-bi-directional-provider-asyncapi ...` — checks whether
+  the current provider version is safe to deploy to `production`.
 
 ---
 

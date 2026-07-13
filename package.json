@@ -4,16 +4,12 @@
   "description": "Demo: Pact bi-directional contract testing with AsyncAPI (PactFlow early access)",
   "type": "module",
   "scripts": {
-    "test": "npm run test:consumer && npm run verify:provider",
-    "test:consumer": "vitest run --reporter=verbose",
-    "verify:provider": "node scripts/verify-provider.mjs"
+    "test:consumer": "vitest run --reporter=verbose"
   },
   "devDependencies": {
     "@pact-foundation/pact": "^16.5.0",
-    "@pactflow/openapi-pact-comparator": "https://github.com/pactflow/openapi-pact-comparator.git#1a556c108cddf825e44493c8e2926521a97441c7",
-    "@types/js-yaml": "^4.0.9",
+    "@pact-foundation/pact-cli": "^18.1.1",
     "@types/node": "^22.0.0",
-    "js-yaml": "^4.1.0",
     "typescript": "^5.6.0",
     "vite": "^6.0.0",
     "vitest": "^2.1.0"
