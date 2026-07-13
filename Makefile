@@ -42,7 +42,10 @@ publish_provider_contract:
 	  --provider-app-version ${GIT_COMMIT} \
 	  --branch ${GIT_BRANCH} \
 	  --content-type application/yaml \
-		--specification asyncapi
+		--specification asyncapi \
+		--verification-success \
+		--verification-results ./results.txt \
+		--verification-results-content-type text/plain
 
 can_i_deploy:
 	@echo "\n========== STAGE: can-i-deploy? ==========\n"
