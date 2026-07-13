@@ -46,7 +46,8 @@ publish_provider_contract:
 		--specification asyncapi \
 		--verification-success \
 		--verification-results ./results.txt \
-		--verification-results-content-type text/plain
+		--verification-results-content-type text/plain \
+		--verifier "drift"
 
 can_i_deploy:
 	@echo "\n========== STAGE: can-i-deploy? ==========\n"
