@@ -19,7 +19,7 @@ jobs:
         with:
           node-version: '22'
       - run: npm ci
-      - run: GIT_BRANCH=${GITHUB_REF:11} make ci
+      - run: GIT_BRANCH=${GITHUB_REF:11} make test_and_publish
 
   can-i-deploy:
     runs-on: ubuntu-latest

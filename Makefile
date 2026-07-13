@@ -20,6 +20,8 @@ install:
 test:
 	npm run test:consumer
 
+test_and_publish: test publish_pact publish_provider_contract
+
 ci: test publish_pact publish_provider_contract can_i_deploy $(DEPLOY_TARGET)
 
 fake_ci:
@@ -64,5 +66,5 @@ record_deployment:
 	  --version ${GIT_COMMIT} \
 	  --environment production
 
-.PHONY: all install test ci fake_ci publish_pact publish_provider_contract \
+.PHONY: all install test ci test_and_publish fake_ci publish_pact publish_provider_contract \
   can_i_deploy deploy no_deploy deploy_app record_deployment
