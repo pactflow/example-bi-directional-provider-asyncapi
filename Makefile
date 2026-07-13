@@ -5,6 +5,7 @@ PACT_CLI := npx --yes @pact-foundation/pact-cli@latest
 OAS_PATH := provider/asyncapi.yaml
 GIT_COMMIT ?= $(shell git rev-parse --short HEAD)
 GIT_BRANCH ?= $(shell git rev-parse --abbrev-ref HEAD)
+export PATH := node_modules/.bin:$(PATH)
 
 ifeq ($(GIT_BRANCH),main)
 	DEPLOY_TARGET=deploy
