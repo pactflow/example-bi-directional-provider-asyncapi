@@ -61,11 +61,26 @@ export PACT_BROKER_TOKEN=your-token
 make ci
 
 # OR run individual stages
-make test                       # steps 1
+make test                       # run consumer tests
 make publish_pact                # publish the consumer pact
 make publish_provider_contract   # publish the provider's AsyncAPI doc
 make can_i_deploy                # gate a deployment
 ```
+
+---
+
+## CI setup
+
+The GitHub Actions workflow (`.github/workflows/build.yml`) needs two
+settings configured in this repository (Settings → Secrets and variables →
+Actions):
+
+- **Variable** `PACT_BROKER_BASE_URL` — the PactFlow instance URL (e.g.
+  `https://your-instance.pactflow.io`)
+- **Secret** `PACT_BROKER_TOKEN` — an API token for that instance
+
+Without these, the `test`, `can-i-deploy`, and `deploy` jobs will run
+against an empty broker URL and fail.
 
 ---
 
@@ -88,7 +103,7 @@ pact
 ```
 
 Running the tests writes a Pact file to `./pacts/` with a `comments.references`
-block that the comparator uses to look up the correct AsyncAPI operation:
+block that PactFlow uses to look up the correct AsyncAPI operation:
 
 ```json
 {
