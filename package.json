@@ -1,17 +1,26 @@
 {
   "name": "example-bi-directional-provider-asyncapi",
   "version": "1.0.0",
-  "description": "Demo: Pact bi-directional contract testing with AsyncAPI (PactFlow early access)",
+  "description": "Demo: Pact bi-directional contract testing with AsyncAPI, verified by Drift over Kafka",
   "type": "module",
   "scripts": {
-    "test:consumer": "vitest run --reporter=verbose"
+    "test:consumer": "vitest run --reporter=verbose",
+    "start:provider": "node src/provider/server.ts",
+    "test:provider": "make test_provider",
+    "kafka:up": "docker compose up -d --wait",
+    "kafka:down": "docker compose down -v",
+    "typecheck": "tsc"
   },
   "devDependencies": {
     "@pact-foundation/pact": "^17.0.1",
     "@pact-foundation/pact-cli": "^18.1.1",
+    "@pactflow/drift": "^2608.3.0",
     "@types/node": "^26.1.1",
     "typescript": "^7.0.2",
     "vite": "^8.1.4",
     "vitest": "^4.1.10"
+  },
+  "dependencies": {
+    "kafkajs": "^2.2.4"
   }
 }

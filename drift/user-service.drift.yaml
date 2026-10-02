@@ -1,0 +1,107 @@
+# yaml-language-server: $schema=https://download.pactflow.io/drift/schemas/drift.testcases.v1.schema.json
+#
+# Drift verification of the User Service against its AsyncAPI document.
+#
+# Drift picks an execution mode for each operation from the AsyncAPI document:
+#
+#   receiveUserEvents  action: receive         → async-inject
+#     Drift publishes a message to `user-events`, then runs a probe that asks the
+#     service for the resulting user state.
+#
+#   getUser            action: send + reply    → async-request-reply
+#     Drift subscribes to `user-get-responses`, publishes a request to
+#     `user-get-requests`, and captures the reply carrying the same correlation id.
+#
+# Every message Drift publishes or captures is also validated against the schema
+# in the AsyncAPI document.
+#
+# Prerequisites: Kafka running (`make kafka_up`) and the provider running
+# (`npm run start:provider`). `make test_provider` does both.
+
+drift-testcase-file: v1
+title: "User Service AsyncAPI verification (Kafka)"
+
+sources:
+  - name: user-async
+    path: ../provider/asyncapi.yaml
+  - name: hooks
+    path: user-service.lua
+
+plugins:
+  - name: asyncapi      # loads the AsyncAPI document and plans each interaction
+  - name: kafka         # the transport
+  - name: json          # builds and validates JSON payloads
+
+operations:
+  # ---------------------------------------------------------------------------
+  # receiveUserEvents — fire-and-forget (async-inject)
+  # ---------------------------------------------------------------------------
+  ReceiveUserEvents_UserCreated:
+    target: user-async:receiveUserEvents:userCreated
+    description: "A userCreated event creates the user"
+    tags: [events, user-created]
+    parameters:
+      payload:
+        userId: u-create-001
+        email: new.user@example.com
+        name: New User
+    probe:
+      executable-type: command
+      value: node
+      parameters:
+        args:
+          - probes/user-state.ts
+          - --user-id
+          - ${parameters.payload.userId}
+          - --until
+          - present
+      timeout-ms: 5000
+    expected:
+      exists: true
+      userId: ${parameters.payload.userId}
+      email: ${parameters.payload.email}
+      name: ${parameters.payload.name}
+
+  ReceiveUserEvents_UserDeleted:
+    target: user-async:receiveUserEvents:userDeleted
+    description: "A userDeleted event removes an existing user"
+    tags: [events, user-deleted]
+    parameters:
+      payload:
+        userId: u-delete-001   # seeded by user-service.lua
+    probe:
+      executable-type: command
+      value: node
+      parameters:
+        args:
+          - probes/user-state.ts
+          - --user-id
+          - ${parameters.payload.userId}
+          - --until
+          - absent
+      timeout-ms: 5000
+    expected:
+      exists: false
+      userId: ${parameters.payload.userId}
+
+  # ---------------------------------------------------------------------------
+  # getUser — request/reply (async-request-reply)
+  # ---------------------------------------------------------------------------
+  GetUser_RequestReply:
+    target: user-async:getUser:getUserRequest
+    description: "A getUser request is answered with the user's details"
+    tags: [request-reply]
+    parameters:
+      timeout-ms: 10000
+      correlation-id: get-user-001
+      payload:
+        userId: u-get-001      # seeded by user-service.lua
+      headers:
+        correlation-id: ${parameters.correlation-id}
+    expected:
+      headers:
+        correlation-id: ${parameters.correlation-id}
+      payload:
+        userId: ${parameters.payload.userId}
+        name: Jane Doe
+        email: jane.doe@example.com

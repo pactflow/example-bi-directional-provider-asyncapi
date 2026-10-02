@@ -5,6 +5,17 @@ info:
   description: |
     Publishes user lifecycle events and supports synchronous user lookups
     via a request/reply pattern.
+defaultContentType: application/json
+
+# ---------------------------------------------------------------------------
+# Servers — the local broker started by `make kafka_up` (compose.yaml).
+# Drift uses this as its default connection.
+# ---------------------------------------------------------------------------
+servers:
+  local:
+    host: localhost:9092
+    protocol: kafka
+    description: Local Kafka broker started from compose.yaml
 
 # ---------------------------------------------------------------------------
 # Channels — the logical topics / queues the service uses
@@ -50,6 +61,9 @@ channels:
     messages:
       getUserRequest:
         summary: Request to retrieve a user's details by ID.
+        correlationId:
+          location: "$message.header#/correlation-id"
+          description: Copied onto the reply so the requester can match it.
         payload:
           type: object
           properties:
@@ -65,6 +79,9 @@ channels:
     messages:
       getUserResponse:
         summary: Response containing the requested user's details.
+        correlationId:
+          location: "$message.header#/correlation-id"
+          description: The correlation id of the request being answered.
         payload:
           type: object
           properties:

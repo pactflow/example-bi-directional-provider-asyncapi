@@ -6,6 +6,9 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "erasableSyntaxOnly": true,
     "outDir": "dist",
     "rootDir": "src",
     "types": ["vitest/globals", "node"]
