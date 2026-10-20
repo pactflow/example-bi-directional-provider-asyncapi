@@ -9,9 +9,15 @@ ASYNCAPI_PATH := provider/asyncapi.yaml
 DRIFT_TEST_FILE := drift/user-service.drift.yaml
 OUTPUT_DIR := output
 PROVIDER_HEALTH_URL := http://localhost:8081/health
+# Pact plugins used by the Avro and Protobuf consumer tests. Keep these in step
+# with the usingPlugin() versions in src/consumer.test.ts
+AVRO_PLUGIN_VERSION := 0.1.3
+PROTOBUF_PLUGIN_VERSION := 0.8.1
 GIT_COMMIT ?= $(shell git rev-parse --short HEAD)
 GIT_BRANCH ?= $(shell git rev-parse --abbrev-ref HEAD)
 export PATH := node_modules/.bin:$(PATH)
+# The Drift CLI to run, e.g. make test_provider DRIFT=~/.drift/bin/drift
+DRIFT ?= drift
 export KAFKAJS_NO_PARTITIONER_WARNING := 1
 
 ifeq ($(GIT_BRANCH),main)
@@ -22,14 +28,22 @@ endif
 
 all: test
 
-install:
+install: install_plugins
 	npm install
+
+# Install the Pact Avro and Protobuf plugins into ~/.pact/plugins (or
+# $$PACT_PLUGIN_DIR). Skipped for any plugin version already installed.
+install_plugins:
+	pact plugin -y install --skip-if-installed \
+	  https://github.com/ZirekHQ/pact-avro-plugin/releases/tag/v${AVRO_PLUGIN_VERSION}
+	pact plugin -y install --skip-if-installed \
+	  https://github.com/pactflow/pact-protobuf-plugin/releases/tag/v-${PROTOBUF_PLUGIN_VERSION}
 
 ## ====================
 ## Consumer
 ## ====================
 
-test:
+test: install_plugins
 	npm run test:consumer
 
 publish_pact:
@@ -58,7 +72,7 @@ test_provider: clean
 	@node src/provider/server.ts > ${OUTPUT_DIR}/provider.log 2>&1 & PROVIDER_PID=$$!; \
 	trap "kill $$PROVIDER_PID 2>/dev/null" EXIT; \
 	node scripts/wait-for-health.ts ${PROVIDER_HEALTH_URL} 60000 || { cat ${OUTPUT_DIR}/provider.log; exit 1; }; \
-	drift verify \
+	${DRIFT} verify \
 	  --test-files ${DRIFT_TEST_FILE} \
 	  --output-dir ${OUTPUT_DIR} \
 	  --generate-result
@@ -75,7 +89,7 @@ publish_provider_contract:
 	  --verification-results "$(shell find ${OUTPUT_DIR} -name 'verification.*.result' -type f | head -1)" \
 	  --verification-results-content-type application/vnd.smartbear.drift.result \
 	  --verifier drift \
-	  --verifier-version $(shell drift --version)
+	  --verifier-version $(shell ${DRIFT} --version)
 
 ## ====================
 ## CI
@@ -134,5 +148,5 @@ record_deployment:
 clean:
 	mkdir -p ${OUTPUT_DIR} && rm -rf ${OUTPUT_DIR}/*
 
-.PHONY: all install test publish_pact kafka_up kafka_down test_provider publish_provider_contract \
+.PHONY: all install install_plugins test publish_pact kafka_up kafka_down test_provider publish_provider_contract \
   test_and_publish ci fake_ci can_i_deploy deploy no_deploy deploy_app record_deployment clean

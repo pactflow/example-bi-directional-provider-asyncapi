@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package users;
+
+// Emitted when a new user account is created.
+message UserCreated {
+  // Unique identifier for the user.
+  string user_id = 1;
+  // Email address of the new user.
+  string email = 2;
+  // Display name of the user (optional at creation).
+  optional string name = 3;
+}

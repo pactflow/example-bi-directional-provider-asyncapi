@@ -1,0 +1,11 @@
+{
+  "type": "record",
+  "name": "UserCreated",
+  "namespace": "com.example.users",
+  "doc": "Emitted when a new user account is created.",
+  "fields": [
+    { "name": "userId", "type": "string", "doc": "Unique identifier for the user." },
+    { "name": "email", "type": "string", "doc": "Email address of the new user." },
+    { "name": "name", "type": ["null", "string"], "default": null, "doc": "Display name of the user (optional at creation)." }
+  ]
+}

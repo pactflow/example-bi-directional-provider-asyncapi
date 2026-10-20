@@ -5,8 +5,10 @@
  * It is deliberately transport-agnostic: Kafka wiring lives in kafka.ts, so the
  * handlers here only deal with plain message payloads.
  *
- *   receiveUserEvents (action: receive) → handleUserEvent()
- *   getUser           (action: send + reply) → handleGetUserRequest()
+ *   receiveUserEvents         (action: receive) → handleUserEvent()
+ *   receiveUserEventsAvro     (action: receive) → handleUserEvent(), after Avro decoding
+ *   receiveUserEventsProtobuf (action: receive) → handleUserEvent(), after Protobuf decoding
+ *   getUser                   (action: send + reply) → handleGetUserRequest()
  */
 
 export interface User {

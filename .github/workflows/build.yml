@@ -20,6 +20,14 @@ jobs:
           node-version: "24"
       - run: npm ci
 
+      # The Pact Avro and Protobuf plugins (versions pinned in the Makefile) are
+      # installed by `make test`; cache them between runs
+      - name: Cache Pact plugins
+        uses: actions/cache@v4
+        with:
+          path: ~/.pact/plugins
+          key: pact-plugins-${{ runner.os }}-${{ hashFiles('Makefile') }}
+
       # Drift is installed from npm (@pactflow/drift); log in with the same
       # PactFlow credentials used for publishing.
       - name: Log in to Drift

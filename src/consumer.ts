@@ -6,6 +6,12 @@
  * messages that these handlers can successfully process.
  */
 
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import avro from 'avsc';
+import protobuf from 'protobufjs';
+
 /** A user-created event published when a new user registers. */
 export interface UserCreatedEvent {
   userId: string;
@@ -41,6 +47,34 @@ export function handleUserCreated(event: UserCreatedEvent): void {
 export function handleUserDeleted(event: UserDeletedEvent): void {
   if (!event.userId) throw new Error('userId is required');
   console.log(`[consumer] user deleted: ${event.userId}`);
+}
+
+// ---------------------------------------------------------------------------
+// Binary payloads
+//
+// The Avro and Protobuf channels carry the same userCreated event, encoded
+// with the consumer's own copy of the schema (src/schemas/). The decoders turn
+// the bytes back into a UserCreatedEvent, so the same handler processes it.
+// ---------------------------------------------------------------------------
+
+const schemaDir = fileURLToPath(new URL('./schemas/', import.meta.url));
+
+const userCreatedAvro = avro.Type.forSchema(
+  JSON.parse(readFileSync(path.join(schemaDir, 'user-created.avsc'), 'utf8')) as avro.Schema,
+);
+
+const userCreatedProtobuf = protobuf.loadSync(path.join(schemaDir, 'user.proto')).lookupType('users.UserCreated');
+
+/** Decodes an Avro-encoded userCreated event from the user-events-avro channel. */
+export function decodeUserCreatedAvro(bytes: Buffer): UserCreatedEvent {
+  const record = userCreatedAvro.fromBuffer(bytes) as { userId: string; email: string; name: string | null };
+  return { userId: record.userId, email: record.email, name: record.name ?? undefined };
+}
+
+/** Decodes a Protobuf-encoded userCreated event from the user-events-protobuf channel. */
+export function decodeUserCreatedProtobuf(bytes: Buffer): UserCreatedEvent {
+  // protobufjs converts the snake_case field names (user_id) to camelCase (userId)
+  return userCreatedProtobuf.toObject(userCreatedProtobuf.decode(bytes)) as UserCreatedEvent;
 }
 
 /** Processes the response to a getUser request/reply exchange. */

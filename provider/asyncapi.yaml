@@ -55,6 +55,62 @@ channels:
           required:
             - userId
 
+  # The same userCreated event, encoded with Avro and with Protobuf. Each schema
+  # is embedded in the document: PactFlow doesn't follow external references or
+  # query schema registries.
+  userEventsAvro:
+    address: user-events-avro
+    description: Channel for user lifecycle events, encoded with Avro.
+    messages:
+      userCreatedAvro:
+        summary: Emitted when a new user account is created (Avro).
+        contentType: avro/binary
+        payload:
+          schemaFormat: application/vnd.apache.avro;version=1.9.0
+          schema:
+            type: record
+            name: UserCreated
+            namespace: com.example.users
+            doc: Emitted when a new user account is created.
+            fields:
+              - name: userId
+                type: string
+                doc: Unique identifier for the user.
+              - name: email
+                type: string
+                doc: Email address of the new user.
+              - name: name
+                type: ["null", "string"]
+                default: null
+                doc: Display name of the user (optional at creation).
+
+  userEventsProtobuf:
+    address: user-events-protobuf
+    description: Channel for user lifecycle events, encoded with Protobuf.
+    messages:
+      userCreatedProtobuf:
+        summary: Emitted when a new user account is created (Protobuf).
+        contentType: application/protobuf
+        payload:
+          schemaFormat: application/vnd.google.protobuf;version=3
+          # The message key (userCreatedProtobuf) isn't a message in the schema,
+          # so name the message to use explicitly
+          x-drift-proto-message: users.UserCreated
+          schema: |
+            syntax = "proto3";
+
+            package users;
+
+            // Emitted when a new user account is created.
+            message UserCreated {
+              // Unique identifier for the user.
+              string user_id = 1;
+              // Email address of the new user.
+              string email = 2;
+              // Display name of the user (optional at creation).
+              optional string name = 3;
+            }
+
   getUserRequests:
     address: user-get-requests
     description: Inbound channel for synchronous user lookup requests.
@@ -109,6 +165,22 @@ operations:
     messages:
       - $ref: "#/channels/userEvents/messages/userCreated"
       - $ref: "#/channels/userEvents/messages/userDeleted"
+
+  # Fire-and-forget with an Avro payload.
+  receiveUserEventsAvro:
+    action: receive
+    channel:
+      $ref: "#/channels/userEventsAvro"
+    messages:
+      - $ref: "#/channels/userEventsAvro/messages/userCreatedAvro"
+
+  # Fire-and-forget with a Protobuf payload.
+  receiveUserEventsProtobuf:
+    action: receive
+    channel:
+      $ref: "#/channels/userEventsProtobuf"
+    messages:
+      - $ref: "#/channels/userEventsProtobuf/messages/userCreatedProtobuf"
 
   # Request/Reply: the consumer sends a request; the service replies.
   # AsyncAPI 3.x models this as a "send" operation with a "reply" block.

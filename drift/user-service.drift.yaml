@@ -8,6 +8,12 @@
 #     Drift publishes a message to `user-events`, then runs a probe that asks the
 #     service for the resulting user state.
 #
+#   receiveUserEventsAvro      action: receive → async-inject
+#   receiveUserEventsProtobuf  action: receive → async-inject
+#     As above, but Drift encodes the event with the Avro or Protobuf schema
+#     embedded in the AsyncAPI document before publishing it to
+#     `user-events-avro` or `user-events-protobuf`.
+#
 #   getUser            action: send + reply    → async-request-reply
 #     Drift subscribes to `user-get-responses`, publishes a request to
 #     `user-get-requests`, and captures the reply carrying the same correlation id.
@@ -31,6 +37,8 @@ plugins:
   - name: asyncapi      # loads the AsyncAPI document and plans each interaction
   - name: kafka         # the transport
   - name: json          # builds and validates JSON payloads
+  - name: avro          # builds and validates Avro payloads
+  - name: protobuf      # builds and validates Protobuf payloads
 
 operations:
   # ---------------------------------------------------------------------------
@@ -83,6 +91,65 @@ operations:
     expected:
       exists: false
       userId: ${parameters.payload.userId}
+
+  # ---------------------------------------------------------------------------
+  # receiveUserEventsAvro — fire-and-forget with an Avro payload (async-inject)
+  # ---------------------------------------------------------------------------
+  ReceiveUserEventsAvro_UserCreated:
+    target: user-async:receiveUserEventsAvro:userCreatedAvro
+    description: "An Avro userCreated event creates the user"
+    tags: [events, user-created, avro]
+    parameters:
+      payload:
+        userId: u-create-avro-001
+        email: avro.user@example.com
+        name: Avro User
+    probe:
+      executable-type: command
+      value: node
+      parameters:
+        args:
+          - probes/user-state.ts
+          - --user-id
+          - ${parameters.payload.userId}
+          - --until
+          - present
+      timeout-ms: 5000
+    expected:
+      exists: true
+      userId: ${parameters.payload.userId}
+      email: ${parameters.payload.email}
+      name: ${parameters.payload.name}
+
+  # ---------------------------------------------------------------------------
+  # receiveUserEventsProtobuf — fire-and-forget with a Protobuf payload (async-inject)
+  # ---------------------------------------------------------------------------
+  ReceiveUserEventsProtobuf_UserCreated:
+    target: user-async:receiveUserEventsProtobuf:userCreatedProtobuf
+    description: "A Protobuf userCreated event creates the user"
+    tags: [events, user-created, protobuf]
+    parameters:
+      # Protobuf field names, as written in the schema
+      payload:
+        user_id: u-create-proto-001
+        email: proto.user@example.com
+        name: Proto User
+    probe:
+      executable-type: command
+      value: node
+      parameters:
+        args:
+          - probes/user-state.ts
+          - --user-id
+          - ${parameters.payload.user_id}
+          - --until
+          - present
+      timeout-ms: 5000
+    expected:
+      exists: true
+      userId: ${parameters.payload.user_id}
+      email: ${parameters.payload.email}
+      name: ${parameters.payload.name}
 
   # ---------------------------------------------------------------------------
   # getUser — request/reply (async-request-reply)

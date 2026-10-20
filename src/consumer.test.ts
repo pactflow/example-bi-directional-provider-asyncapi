@@ -6,13 +6,17 @@
  * testing the provider side is verified by comparing the Pact file against the
  * provider's AsyncAPI document — no provider code needs to run.
  *
- * Two interaction styles are demonstrated:
+ * Three kinds of interaction are demonstrated:
  *
  *   1. Fire-and-forget (Asynchronous/Messages)
  *      The provider publishes an event; the consumer handles it.
  *      AsyncAPI operation action: "receive"
  *
- *   2. Request/Reply (Synchronous/Messages)
+ *   2. Fire-and-forget with binary payloads (Asynchronous/Messages)
+ *      The same event encoded with Avro or Protobuf, written by the Pact Avro
+ *      and Protobuf plugins.
+ *
+ *   3. Request/Reply (Synchronous/Messages)
  *      The consumer sends a request and awaits a correlated reply.
  *      AsyncAPI operation action: "send" with a "reply" block
  *
@@ -28,12 +32,22 @@ import {
   handleUserCreated,
   handleUserDeleted,
   handleGetUserResponse,
+  decodeUserCreatedAvro,
+  decodeUserCreatedProtobuf,
   type UserCreatedEvent,
   type UserDeletedEvent,
   type GetUserResponse,
 } from './consumer.js';
 
 const { string } = Matchers;
+
+// The consumer's own copies of the Avro and Protobuf schemas
+const schemaDir = path.resolve(import.meta.dirname, 'schemas');
+
+// Pact passes plugin-generated message contents to the test as a base64 string
+// rather than a Buffer, so turn them back into the bytes Kafka would deliver.
+const bytesOf = (content: unknown): Buffer =>
+  Buffer.isBuffer(content) ? content : Buffer.from(content as string, 'base64');
 
 describe('User Service Consumer', () => {
   // Pact (aliased from PactV4) — no mock HTTP server; messages are exchanged
@@ -94,7 +108,66 @@ describe('User Service Consumer', () => {
   });
 
   // ---------------------------------------------------------------------------
-  // 2. Request/Reply — Synchronous/Messages
+  // 2. Binary payloads — Avro and Protobuf (Asynchronous/Messages)
+  //    The same userCreated event, on channels that carry Avro and Protobuf
+  //    instead of JSON.  The Pact Avro and Protobuf plugins encode a real binary
+  //    message from the consumer's schema (src/schemas/) and embed that schema
+  //    in the pact, so PactFlow can compare it with the provider's schema.
+  //
+  //    Every key that doesn't start with "pact:" describes a field, using a
+  //    matching rule definition expression such as notEmpty('...').
+  // ---------------------------------------------------------------------------
+
+  describe('Avro: receiveUserEventsAvro operation', () => {
+    it('handles an Avro userCreated event', () => {
+      return pact
+        .addAsynchronousInteraction()
+        .reference('AsyncAPI', 'operationId', 'receiveUserEventsAvro')
+        .usingPlugin({ plugin: 'avro', version: '0.1.3' })
+        .expectsToReceive('a user-created event (Avro)')
+        .withPluginContents(
+          JSON.stringify({
+            'pact:avro': path.resolve(schemaDir, 'user-created.avsc'),
+            'pact:record-name': 'UserCreated',
+            'pact:content-type': 'avro/binary',
+            userId: "notEmpty('u-abc-123')",
+            email: "notEmpty('user@example.com')",
+          }),
+          'avro/binary',
+        )
+        // The handler receives the encoded bytes, exactly as they arrive from Kafka
+        .executeTest(async (message) => {
+          handleUserCreated(decodeUserCreatedAvro(bytesOf(message.contents.content)));
+        });
+    });
+  });
+
+  describe('Protobuf: receiveUserEventsProtobuf operation', () => {
+    it('handles a Protobuf userCreated event', () => {
+      return pact
+        .addAsynchronousInteraction()
+        .reference('AsyncAPI', 'operationId', 'receiveUserEventsProtobuf')
+        .usingPlugin({ plugin: 'protobuf', version: '0.8.1' })
+        .expectsToReceive('a user-created event (Protobuf)')
+        .withPluginContents(
+          JSON.stringify({
+            'pact:proto': path.resolve(schemaDir, 'user.proto'),
+            'pact:message-type': 'UserCreated',
+            'pact:content-type': 'application/protobuf',
+            // Protobuf field names, as written in the .proto file
+            user_id: "notEmpty('u-abc-123')",
+            email: "notEmpty('user@example.com')",
+          }),
+          'application/protobuf',
+        )
+        .executeTest(async (message) => {
+          handleUserCreated(decodeUserCreatedProtobuf(bytesOf(message.contents.content)));
+        });
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // 3. Request/Reply — Synchronous/Messages
   //    The consumer sends a request to "user-get-requests" and receives a
   //    correlated reply from "user-get-responses", modelled as an AsyncAPI
   //    "send" operation with a "reply" block (AsyncAPI 3.x request/reply).
