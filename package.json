@@ -4,6 +4,7 @@
   "description": "Demo: Pact bi-directional contract testing with AsyncAPI, verified by Drift over Kafka",
   "type": "module",
   "scripts": {
+    "postinstall": "drift component install --yes kafka avro protobuf",
     "test:consumer": "vitest run --reporter=verbose",
     "start:provider": "node src/provider/server.ts",
     "test:provider": "make test_provider",
@@ -14,7 +15,7 @@
   "devDependencies": {
     "@pact-foundation/pact": "^17.0.1",
     "@pact-foundation/pact-cli": "^18.1.1",
-    "@pactflow/drift": "^2608.3.0",
+    "@pactflow/drift": "^2610.0.0",
     "@types/node": "^26.1.1",
     "typescript": "^7.0.2",
     "vite": "^8.1.4",

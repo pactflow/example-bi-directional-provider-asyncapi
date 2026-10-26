@@ -35,7 +35,7 @@ consumer/provider repos.
 | Format | Consumer contract | Provider contract | Verified by Drift |
 |---|---|---|---|
 | **JSON** | Pact message with a JSON body | JSON Schema payload | Yes |
-| **Avro** | Pact V4 message written by the [Pact Avro plugin](https://github.com/ZirekHQ/pact-avro-plugin) | Avro schema embedded in the payload | Yes (needs a Drift release with the `avro` plugin, newer than 2608.3.0) |
+| **Avro** | Pact V4 message written by the [Pact Avro plugin](https://github.com/ZirekHQ/pact-avro-plugin) | Avro schema embedded in the payload | Yes |
 | **Protobuf** | Pact V4 message written by the [Pact Protobuf plugin](https://github.com/pactflow/pact-protobuf-plugin) | `.proto` source embedded in the payload | Yes |
 
 The Avro and Protobuf channels carry the same `userCreated` event as the JSON
@@ -80,7 +80,9 @@ one, so the three are easy to compare. See
 Prerequisites: Node.js 24+, Docker, and a PactFlow workspace with Drift enabled.
 
 ```bash
-# Install dependencies (includes the Drift CLI, @pactflow/drift)
+# Install dependencies (includes the Drift CLI, @pactflow/drift). A postinstall
+# step adds the optional kafka, avro and protobuf Drift plugins, which aren't
+# bundled with the npm package
 npm install
 
 # Install the Pact Avro and Protobuf plugins into ~/.pact/plugins
